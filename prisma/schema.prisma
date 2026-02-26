@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String
+  frames    Frame[]
+  createdAt DateTime @default(now())
+}
+
+model Frame {
+  id          String   @id @default(cuid())
+  mediaUrl    String
+  mediaType   String
+  aspectRatio String?
+  width       Int?
+  height      Int?
+  figmaUrl    String?
+  authorId    String
+  author      Author   @relation(fields: [authorId], references: [id])
+  tags        String[]
+  comment     String?
+  createdAt   DateTime @default(now())
+}
