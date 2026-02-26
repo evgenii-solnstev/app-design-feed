@@ -1,9 +1,8 @@
-import { PrismaNeon } from "@prisma/adapter-neon"
-// В Prisma 7 PrismaClient импортируется так:
 const { PrismaClient } = require("@prisma/client")
+const { PrismaNeon } = require("@prisma/adapter-neon")
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: InstanceType<typeof PrismaClient> | undefined
+  prisma: any
 }
 
 function createPrismaClient() {
