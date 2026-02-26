@@ -23,7 +23,9 @@ export function FrameFeed() {
       : "/api/frames"
     const res = await fetch(url)
     if (!res.ok) {
-      throw new Error(`Failed to load frames: ${res.status}`)
+      const body = await res.json().catch(() => ({}))
+      const message = (body?.error as string) || `Failed to load frames: ${res.status}`
+      throw new Error(message)
     }
     const data: FramesResponse = await res.json()
     return data

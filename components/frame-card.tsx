@@ -30,6 +30,14 @@ export function FrameCard({ frame }: { frame: Frame }) {
   // Пропорции для области изображения (из API или дефолт 16/10)
   const aspectRatio = frame.aspectRatio ?? "16/10"
 
+  // Дата добавления: короткий формат (например «26 фев»)
+  const addedDate = frame.createdAt
+    ? new Date(frame.createdAt).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+      })
+    : null
+
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
       {/* Область изображения: сохраняем пропорции, без сдвига верстки */}
@@ -49,16 +57,23 @@ export function FrameCard({ frame }: { frame: Frame }) {
       </CardContent>
 
       <CardFooter className="flex flex-col items-start gap-3 pt-3">
-        {/* Автор: аватар по инициалам + имя */}
-        <div className="flex w-full items-center gap-2">
-          <Avatar className="size-8 shrink-0">
-            <AvatarFallback className="text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <span className="truncate text-sm font-medium text-foreground">
-            {frame.author.name}
-          </span>
+        {/* Автор и дата добавления */}
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Avatar className="size-8 shrink-0">
+              <AvatarFallback className="text-xs">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="truncate text-sm font-medium text-foreground">
+              {frame.author.name}
+            </span>
+          </div>
+          {addedDate && (
+            <span className="shrink-0 text-muted-foreground text-xs">
+              {addedDate}
+            </span>
+          )}
         </div>
 
         {/* Ссылка на Figma — только если есть */}
