@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react"
 import { FrameCard } from "@/components/frame-card"
+import { FrameLightbox } from "@/components/frame-lightbox"
 import type { Frame, FramesResponse } from "@/lib/types"
 
 /**
@@ -16,6 +17,9 @@ export function FrameFeed() {
   const [error, setError] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const loadingMoreRef = useRef(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const closedLightboxIndexRef = useRef<number | null>(null)
 
   const loadMore = useCallback(async (cursor: string | null = null) => {
     const url = cursor
@@ -84,6 +88,25 @@ export function FrameFeed() {
     return () => observer.disconnect()
   }, [nextCursor, loading, loadMore])
 
+  // После закрытия лайтбокса прокручиваем к карточке, которая была открыта
+  useEffect(() => {
+    if (lightboxIndex !== null) return
+    const idx = closedLightboxIndexRef.current
+    closedLightboxIndexRef.current = null
+    if (idx == null) return
+    const el = cardRefs.current[idx]
+    if (el) {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      el.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "center" })
+    }
+  }, [lightboxIndex])
+
+  const openLightbox = useCallback((index: number) => setLightboxIndex(index), [])
+  const closeLightbox = useCallback(() => {
+    closedLightboxIndexRef.current = lightboxIndex
+    setLightboxIndex(null)
+  }, [lightboxIndex])
+
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -102,12 +125,32 @@ export function FrameFeed() {
 
   return (
     <>
-      {/* Адаптивная сетка: 1 колонка на мобиле, 2 на планшете, 3 на десктопе */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((frame) => (
-          <FrameCard key={frame.id} frame={frame} />
+      {/* Сетка по 2 карточки в ряд */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {items.map((frame, index) => (
+          <div
+            key={frame.id}
+            ref={(el) => {
+              cardRefs.current[index] = el
+            }}
+          >
+            <FrameCard
+              frame={frame}
+              onImageClick={() => openLightbox(index)}
+            />
+          </div>
         ))}
       </div>
+
+      {/* Полноэкранный просмотр: стрелки вверх/вниз и скролл — смена картинки */}
+      {lightboxIndex !== null && (
+        <FrameLightbox
+          items={items}
+          currentIndex={lightboxIndex}
+          onClose={closeLightbox}
+          onIndexChange={setLightboxIndex}
+        />
+      )}
 
       {/* Sentinel для infinite scroll: когда он попадает в viewport, запрашиваем следующую страницу */}
       <div ref={sentinelRef} className="h-4 w-full" aria-hidden />

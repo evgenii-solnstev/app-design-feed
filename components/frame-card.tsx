@@ -15,9 +15,15 @@ import type { Frame } from "@/lib/types"
 /**
  * Карточка одного фрейма в ленте.
  * Показывает: изображение, имя автора (с аватаром по инициалам), ссылку на Figma, при наличии — теги.
- * Изображение через <img> с aspect-ratio, чтобы не было layout shift и не настраивать домены для next/image.
+ * Клик по картинке вызывает onImageClick (открытие полноэкранного просмотра).
  */
-export function FrameCard({ frame }: { frame: Frame }) {
+export function FrameCard({
+  frame,
+  onImageClick,
+}: {
+  frame: Frame
+  onImageClick?: () => void
+}) {
   // Инициалы автора для AvatarFallback (первые буквы слов или первые 2 символа имени)
   const initials = frame.author.name
     .trim()
@@ -40,11 +46,23 @@ export function FrameCard({ frame }: { frame: Frame }) {
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
-      {/* Область изображения: сохраняем пропорции, без сдвига верстки */}
+      {/* Область изображения: клик открывает полноэкранный просмотр */}
       <CardContent className="p-0">
         <div
-          className="relative w-full overflow-hidden bg-muted"
+          role={onImageClick ? "button" : undefined}
+          tabIndex={onImageClick ? 0 : undefined}
+          className={`relative w-full overflow-hidden bg-muted ${onImageClick ? "cursor-pointer" : ""}`}
           style={{ aspectRatio }}
+          onClick={(e) => {
+            e.preventDefault()
+            onImageClick?.()
+          }}
+          onKeyDown={(e) => {
+            if (onImageClick && (e.key === "Enter" || e.key === " ")) {
+              e.preventDefault()
+              onImageClick()
+            }
+          }}
         >
           <img
             src={frame.mediaUrl}
@@ -52,6 +70,7 @@ export function FrameCard({ frame }: { frame: Frame }) {
             className="size-full object-cover"
             loading="lazy"
             decoding="async"
+            draggable={false}
           />
         </div>
       </CardContent>

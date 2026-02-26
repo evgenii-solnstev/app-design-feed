@@ -55,9 +55,11 @@ figma.ui.onmessage = async (eventOrMsg) => {
     const figmaUrl = getFigmaUrl(node);
 
     try {
+      // Ограничиваем размер: макс. ширина 1200px + JPG (меньше PNG для фреймов с картинками),
+      // чтобы не упираться в лимит Vercel (~4.5 MB) и не получать Failed to fetch / таймаут
       const bytes = await node.exportAsync({
-        format: "PNG",
-        constraint: { type: "SCALE", value: 2 },
+        format: "JPG",
+        constraint: { type: "WIDTH", value: 1200 },
       });
 
       figma.ui.postMessage({

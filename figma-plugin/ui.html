@@ -80,33 +80,55 @@
         }
       }
       if (msg.type === 'exported') {
-        const { bytes, authorName, figmaUrl } = msg;
+        var payload = { bytes: msg.bytes, authorName: msg.authorName, figmaUrl: msg.figmaUrl || '' };
         submitBtn.disabled = true;
         submitBtn.textContent = 'Отправка…';
-        const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' });
-        const formData = new FormData();
-        formData.append('file', blob, 'frame.png');
-        formData.append('authorName', authorName);
-        if (figmaUrl) formData.append('figmaUrl', figmaUrl);
 
-        fetch(API_BASE + '/api/frames', {
-          method: 'POST',
-          body: formData,
-        })
-          .then((res) => {
-            if (!res.ok) return res.json().then((d) => Promise.reject(new Error(d.error || res.statusText)));
+        function doFetch(attempt) {
+          var blob = new Blob([new Uint8Array(payload.bytes)], { type: 'image/jpeg' });
+          var formData = new FormData();
+          formData.append('file', blob, 'frame.jpg');
+          formData.append('authorName', payload.authorName);
+          if (payload.figmaUrl) formData.append('figmaUrl', payload.figmaUrl);
+
+          var controller = new AbortController();
+          var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+
+          return fetch(API_BASE + '/api/frames', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          }).then(function(res) {
+            clearTimeout(timeoutId);
+            if (!res.ok) return res.json().then(function(d) { return Promise.reject(new Error(d.error || res.statusText)); });
             return res.json();
-          })
-          .then(() => {
-            showMessage('Добавлено в ленту.', false);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Поделиться в ленте';
-          })
-          .catch((err) => {
-            showMessage(err.message || 'Ошибка отправки.', true);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Поделиться в ленте';
+          }, function(err) {
+            clearTimeout(timeoutId);
+            throw err;
           });
+        }
+
+        function runWithRetry(attempt) {
+          attempt = attempt || 1;
+          doFetch(attempt)
+            .then(function() {
+              showMessage('Добавлено в ленту.', false);
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Поделиться в ленте';
+            })
+            .catch(function(err) {
+              if (attempt < 3) {
+                submitBtn.textContent = 'Повтор… (' + (attempt + 1) + '/3)';
+                setTimeout(function() { runWithRetry(attempt + 1); }, 1500);
+              } else {
+                var text = err.message || (err.name === 'AbortError' ? 'Таймаут. Попробуйте фрейм поменьше.' : 'Ошибка отправки.');
+                showMessage(text, true);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Поделиться в ленте';
+              }
+            });
+        }
+        runWithRetry(1);
       }
       if (msg.type === 'result' && !msg.success) {
         showMessage(msg.error || 'Ошибка.', true);
