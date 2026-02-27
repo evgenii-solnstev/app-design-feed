@@ -57,7 +57,7 @@ export function FrameCard({
         <img
           src={frame.mediaUrl}
           alt={frame.comment ?? `Frame by ${frame.author.name}`}
-          className="h-full w-full object-cover object-left-top"
+          className="h-full w-full object-cover object-top"
           loading="lazy"
           decoding="async"
           draggable={false}

@@ -46,7 +46,7 @@ function StripSlide({
         <img
           src={frame.mediaUrl}
           alt={frame.comment ?? `Frame by ${frame.author.name}`}
-          className="size-full object-cover"
+          className="size-full object-cover object-top"
           loading="lazy"
           decoding="async"
           draggable={false}

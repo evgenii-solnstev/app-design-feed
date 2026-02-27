@@ -97,6 +97,8 @@ export function FrameLightbox({
 
   useEffect(() => {
     setPullOffset(0)
+    const el = imageAreaRef.current
+    if (el) el.scrollTop = 0
   }, [currentIndex])
 
   // Мягкое появление картинки при смене кадра

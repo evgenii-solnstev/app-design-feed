@@ -28,9 +28,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
+    <div className="min-h-screen bg-[#F7F7F7]">
       {/* Шапка: отступ сверху 64px, снизу 40px, без border. Переключатель по центру вертикали */}
-      <header className="bg-[#F5F5F5] pt-16 pb-10">
+      <header className="bg-[#F7F7F7] pt-16 pb-10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <div>
             <h1 className="text-[40px] font-bold tracking-tight text-foreground">
