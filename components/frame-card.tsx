@@ -1,11 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,9 +8,8 @@ import { ExternalLink } from "lucide-react"
 import type { Frame } from "@/lib/types"
 
 /**
- * Карточка одного фрейма в ленте.
- * Показывает: изображение, имя автора (с аватаром по инициалам), ссылку на Figma, при наличии — теги.
- * Клик по картинке вызывает onImageClick (открытие полноэкранного просмотра).
+ * Блок одного фрейма в ленте (сетка).
+ * Картинка в контейнере с radius 12px, внизу отступ 20px — имя и дата, затем ссылка на Figma и теги.
  */
 export function FrameCard({
   frame,
@@ -24,7 +18,6 @@ export function FrameCard({
   frame: Frame
   onImageClick?: () => void
 }) {
-  // Инициалы автора для AvatarFallback (первые буквы слов или первые 2 символа имени)
   const initials = frame.author.name
     .trim()
     .split(/\s+/)
@@ -33,10 +26,8 @@ export function FrameCard({
     .toUpperCase()
     .slice(0, 2) || "?"
 
-  // Пропорции для области изображения (из API или дефолт 16/10)
   const aspectRatio = frame.aspectRatio ?? "16/10"
 
-  // Дата добавления: короткий формат (например «26 фев»)
   const addedDate = frame.createdAt
     ? new Date(frame.createdAt).toLocaleDateString("ru-RU", {
         day: "numeric",
@@ -45,38 +36,36 @@ export function FrameCard({
     : null
 
   return (
-    <Card className="overflow-hidden border-0 shadow-none">
-      {/* Область изображения: fit по ширине, высота с обрезкой (object-cover), без белых мест */}
-      <CardContent className="p-0">
-        <div
-          role={onImageClick ? "button" : undefined}
-          tabIndex={onImageClick ? 0 : undefined}
-          className={`relative w-full overflow-hidden bg-muted ${onImageClick ? "cursor-pointer" : ""}`}
-          style={{ aspectRatio }}
-          onClick={(e) => {
+    <div className="flex flex-col">
+      {/* Картинка: контейнер с radius 12px */}
+      <div
+        role={onImageClick ? "button" : undefined}
+        tabIndex={onImageClick ? 0 : undefined}
+        className={`relative w-full overflow-hidden rounded-xl bg-muted ${onImageClick ? "cursor-pointer" : ""}`}
+        style={{ aspectRatio }}
+        onClick={(e) => {
+          e.preventDefault()
+          onImageClick?.()
+        }}
+        onKeyDown={(e) => {
+          if (onImageClick && (e.key === "Enter" || e.key === " ")) {
             e.preventDefault()
-            onImageClick?.()
-          }}
-          onKeyDown={(e) => {
-            if (onImageClick && (e.key === "Enter" || e.key === " ")) {
-              e.preventDefault()
-              onImageClick()
-            }
-          }}
-        >
-          <img
-            src={frame.mediaUrl}
-            alt={frame.comment ?? `Frame by ${frame.author.name}`}
-            className="h-full w-full object-cover object-left-top"
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-          />
-        </div>
-      </CardContent>
+            onImageClick()
+          }
+        }}
+      >
+        <img
+          src={frame.mediaUrl}
+          alt={frame.comment ?? `Frame by ${frame.author.name}`}
+          className="h-full w-full object-cover object-left-top"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      </div>
 
-      <CardFooter className="flex flex-col items-start gap-3 pt-3">
-        {/* Автор и дата добавления */}
+      {/* Имя и дата — отступ сверху 20px; далее как раньше */}
+      <div className="mt-5 flex flex-col items-start gap-3">
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="size-8 shrink-0">
@@ -95,7 +84,6 @@ export function FrameCard({
           )}
         </div>
 
-        {/* Ссылка на Figma — только если есть */}
         {frame.figmaUrl ? (
           <Button variant="outline" size="sm" asChild className="w-full">
             <Link
@@ -110,7 +98,6 @@ export function FrameCard({
           </Button>
         ) : null}
 
-        {/* Теги — бейджи, если есть */}
         {frame.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">
             {frame.tags.map((tag) => (
@@ -120,7 +107,7 @@ export function FrameCard({
             ))}
           </div>
         ) : null}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   )
 }
