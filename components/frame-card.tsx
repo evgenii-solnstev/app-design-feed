@@ -45,8 +45,8 @@ export function FrameCard({
     : null
 
   return (
-    <Card className="overflow-hidden shadow-none">
-      {/* Область изображения: клик открывает полноэкранный просмотр */}
+    <Card className="overflow-hidden border-0 shadow-none">
+      {/* Область изображения: fit по ширине, высота с обрезкой (object-cover), без белых мест */}
       <CardContent className="p-0">
         <div
           role={onImageClick ? "button" : undefined}
@@ -67,7 +67,7 @@ export function FrameCard({
           <img
             src={frame.mediaUrl}
             alt={frame.comment ?? `Frame by ${frame.author.name}`}
-            className="size-full object-cover"
+            className="h-full w-full object-cover object-left-top"
             loading="lazy"
             decoding="async"
             draggable={false}

@@ -28,7 +28,7 @@ function StripSlide({
   return (
     <div
       ref={cardRef}
-      className="flex min-h-[80vh] flex-col gap-4 border-b border-border py-8 sm:min-h-[90vh] sm:flex-row sm:items-center sm:gap-8"
+      className="flex min-h-[80vh] flex-col gap-3 py-6 sm:min-h-[90vh] sm:flex-row sm:items-center sm:gap-6"
     >
       <div
         role="button"
