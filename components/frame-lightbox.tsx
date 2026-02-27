@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from "react"
 import Link from "next/link"
-import { X, ZoomIn, ZoomOut } from "lucide-react"
+import { X, ZoomIn, ZoomOut, ChevronUp, ChevronDown } from "lucide-react"
 import { ExternalLink } from "lucide-react"
 import type { Frame } from "@/lib/types"
 
@@ -15,8 +15,13 @@ type Props = {
 
 type ZoomMode = "original" | "fit-width"
 
-const THUMB_WIDTH = 150
-const THUMB_HEIGHT = 112
+// Размеры в 0.7x от исходных 150×112, чтобы gap 16px был между видимыми миниатюрами
+const THUMB_WIDTH = 105
+const THUMB_HEIGHT = 78
+
+const PULL_THRESHOLD = 60
+const PULL_RESISTANCE = 0.4
+const ARROW_SIZE = 16
 
 /**
  * Полноэкранный просмотр: данные вверху по центру, zoom по клику на картинку,
@@ -33,6 +38,17 @@ export function FrameLightbox({
   const hasNext = currentIndex < items.length - 1
   const [zoom, setZoom] = useState<ZoomMode>("original")
   const thumbsContainerRef = useRef<HTMLDivElement>(null)
+  const imageAreaRef = useRef<HTMLDivElement>(null)
+
+  // Pull-to-switch: смещение при «длинном» скролле (положительное = тянем вниз → prev, отрицательное = тянем вверх → next)
+  const [pullOffset, setPullOffset] = useState(0)
+  const [arrowExit, setArrowExit] = useState<"up" | "down" | null>(null)
+  const touchStartY = useRef(0)
+  const touchStartScrollTop = useRef(0)
+  const isAtTop = useRef(true)
+  const isAtBottom = useRef(true)
+  const pullOffsetRef = useRef(0)
+  pullOffsetRef.current = pullOffset
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange(currentIndex - 1)
@@ -87,6 +103,68 @@ export function FrameLightbox({
     }
   }, [])
 
+  // Сброс pull при смене кадра
+  useEffect(() => {
+    setPullOffset(0)
+  }, [currentIndex])
+
+  // Pull-to-switch: только при zoom original
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (zoom !== "original") return
+      touchStartY.current = e.touches[0].clientY
+      const el = imageAreaRef.current
+      if (el) {
+        touchStartScrollTop.current = el.scrollTop
+        isAtTop.current = el.scrollTop <= 0
+        isAtBottom.current = el.scrollTop >= el.scrollHeight - el.clientHeight - 1
+      } else {
+        isAtTop.current = true
+        isAtBottom.current = true
+      }
+    },
+    [zoom]
+  )
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (zoom !== "original") return
+      const el = imageAreaRef.current
+      const deltaY = e.touches[0].clientY - touchStartY.current
+      if (el && el.scrollHeight > el.clientHeight) {
+        if (el.scrollTop <= 0 && deltaY > 0) {
+          e.preventDefault()
+          const v = Math.min(deltaY * PULL_RESISTANCE, 120)
+          setPullOffset(v)
+        } else if (el.scrollTop >= el.scrollHeight - el.clientHeight - 1 && deltaY < 0) {
+          e.preventDefault()
+          const v = Math.max(deltaY * PULL_RESISTANCE, -120)
+          setPullOffset(v)
+        }
+      } else {
+        e.preventDefault()
+        const v = Math.max(-120, Math.min(120, deltaY * PULL_RESISTANCE))
+        setPullOffset(v)
+      }
+    },
+    [zoom]
+  )
+
+  const handleTouchEnd = useCallback(() => {
+    if (zoom !== "original") return
+    const o = pullOffsetRef.current
+    setPullOffset(0)
+    if (o >= PULL_THRESHOLD && hasPrev) {
+      onIndexChange(currentIndex - 1)
+      setArrowExit("up")
+      setTimeout(() => setArrowExit(null), 300)
+    } else if (o <= -PULL_THRESHOLD && hasNext) {
+      onIndexChange(currentIndex + 1)
+      setArrowExit("down")
+      setTimeout(() => setArrowExit(null), 300)
+    }
+  }, [zoom, hasPrev, hasNext, currentIndex, onIndexChange])
+
   if (!frame) return null
 
   const addedDate = frame.createdAt
@@ -107,9 +185,10 @@ export function FrameLightbox({
       {/* Миниатюры слева: скрыты при zoom in; при zoom out анимация появления 300ms; по умолчанию opacity 0.5, scale 0.7 */}
       <div
         ref={thumbsContainerRef}
-        className={`absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-4 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ${
+        className={`absolute bottom-8 left-8 top-8 z-10 flex w-[105px] flex-col overflow-y-auto overflow-x-hidden transition-opacity duration-300 ${
           zoom === "fit-width" ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
+        style={{ gap: 16 }}
         onClick={(e) => e.stopPropagation()}
       >
         {items.map((item, index) => (
@@ -118,12 +197,13 @@ export function FrameLightbox({
             type="button"
             data-thumb-index={index}
             onClick={() => onIndexChange(index)}
-            className="relative shrink-0 overflow-hidden rounded-md bg-muted opacity-50 transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 scale-[0.7]"
+            className={`relative shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 ${
+              index === currentIndex ? "opacity-90" : "opacity-50"
+            }`}
             style={{
               width: THUMB_WIDTH,
               height: THUMB_HEIGHT,
               borderRadius: 6,
-              transformOrigin: "top left",
             }}
           >
             <img
@@ -167,25 +247,85 @@ export function FrameLightbox({
         ) : null}
       </div>
 
-      {/* Область с картинкой: клик переключает zoom; при zoom — скролл контейнера для просмотра картинки */}
+      {/* Область с картинкой: клик переключает zoom; при zoom original — pull-to-switch и растягивание */}
       <div
+        ref={imageAreaRef}
         className={`min-h-0 flex-1 overflow-auto p-4 pt-4 flex ${zoom === "fit-width" ? "items-start justify-center" : "items-center justify-center"}`}
         onClick={(e) => {
           e.stopPropagation()
           toggleZoom()
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        style={{ touchAction: zoom === "original" ? "none" : "auto" }}
       >
-        <img
-          src={frame.mediaUrl}
-          alt={frame.comment ?? `Frame by ${frame.author.name}`}
-          className={
-            zoom === "fit-width"
-              ? "h-auto w-full max-w-full object-contain object-left-top rounded-xl block"
-              : "max-h-full max-w-full object-contain rounded-xl"
-          }
-          draggable={false}
-        />
+        <div
+          className="flex min-h-full min-w-full items-center justify-center transition-transform duration-75"
+          style={{
+            transform: zoom === "original" ? `translateY(${pullOffset}px)` : undefined,
+          }}
+        >
+          <img
+            src={frame.mediaUrl}
+            alt={frame.comment ?? `Frame by ${frame.author.name}`}
+            className={
+              zoom === "fit-width"
+                ? "h-auto w-full max-w-full object-contain object-left-top rounded-xl block"
+                : "max-h-full max-w-full object-contain rounded-xl"
+            }
+            draggable={false}
+          />
+        </div>
       </div>
+
+      {/* Стрелка при pull: 16px, по центру сверху (prev) или снизу (next) */}
+      {zoom === "original" && (
+        <>
+          {pullOffset >= PULL_THRESHOLD && hasPrev && (
+            <div
+              className="pointer-events-none absolute left-1/2 top-8 z-20 -translate-x-1/2 text-white/90"
+              style={{ top: 32 }}
+              aria-hidden
+            >
+              <ChevronUp size={ARROW_SIZE} />
+            </div>
+          )}
+          {pullOffset <= -PULL_THRESHOLD && hasNext && (
+            <div
+              className="pointer-events-none absolute bottom-8 left-1/2 z-20 -translate-x-1/2 text-white/90"
+              style={{ bottom: 32 }}
+              aria-hidden
+            >
+              <ChevronDown size={ARROW_SIZE} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Анимация выхода стрелки после смены кадра: 300ms снизу вверх или сверху вниз */}
+      {arrowExit && (
+        <div
+          className={`pointer-events-none absolute left-1/2 z-20 text-white/90 ${
+            arrowExit === "up"
+              ? "animate-arrow-exit-up"
+              : "animate-arrow-exit-down"
+          }`}
+          style={
+            arrowExit === "up"
+              ? { top: 32, left: "50%" }
+              : { bottom: 32, left: "50%" }
+          }
+          aria-hidden
+        >
+          {arrowExit === "up" ? (
+            <ChevronUp size={ARROW_SIZE} />
+          ) : (
+            <ChevronDown size={ARROW_SIZE} />
+          )}
+        </div>
+      )}
 
       {/* Zoom in/out внизу справа: всегда видны поверх */}
       <div

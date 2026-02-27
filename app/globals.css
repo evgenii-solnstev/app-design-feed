@@ -124,3 +124,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Lightbox: анимация выхода стрелки при смене кадра (300ms) */
+@keyframes arrow-exit-up {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -80px);
+    opacity: 0;
+  }
+}
+@keyframes arrow-exit-down {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, 80px);
+    opacity: 0;
+  }
+}
+.animate-arrow-exit-up {
+  animation: arrow-exit-up 0.3s ease-out forwards;
+}
+.animate-arrow-exit-down {
+  animation: arrow-exit-down 0.3s ease-out forwards;
+}
