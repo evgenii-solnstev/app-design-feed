@@ -44,9 +44,6 @@ export function FrameLightbox({
   const [pullOffset, setPullOffset] = useState(0)
   const [arrowExit, setArrowExit] = useState<"up" | "down" | null>(null)
   const touchStartY = useRef(0)
-  const touchStartScrollTop = useRef(0)
-  const isAtTop = useRef(true)
-  const isAtBottom = useRef(true)
   const pullOffsetRef = useRef(0)
   pullOffsetRef.current = pullOffset
 
@@ -108,20 +105,22 @@ export function FrameLightbox({
     setPullOffset(0)
   }, [currentIndex])
 
-  // Pull-to-switch: только при zoom original
+  // Нативный touchmove с passive: false, чтобы preventDefault блокировал скролл страницы (в original)
+  useEffect(() => {
+    const el = imageAreaRef.current
+    if (!el || zoom !== "original") return
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+    }
+    el.addEventListener("touchmove", onTouchMove, { passive: false })
+    return () => el.removeEventListener("touchmove", onTouchMove)
+  }, [zoom])
+
+  // Pull-to-switch: только при zoom original. При original нет скролла — только тяга и смена кадра.
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (zoom !== "original") return
       touchStartY.current = e.touches[0].clientY
-      const el = imageAreaRef.current
-      if (el) {
-        touchStartScrollTop.current = el.scrollTop
-        isAtTop.current = el.scrollTop <= 0
-        isAtBottom.current = el.scrollTop >= el.scrollHeight - el.clientHeight - 1
-      } else {
-        isAtTop.current = true
-        isAtBottom.current = true
-      }
     },
     [zoom]
   )
@@ -129,23 +128,11 @@ export function FrameLightbox({
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (zoom !== "original") return
-      const el = imageAreaRef.current
+      // Всегда блокируем стандартный скролл в original, чтобы не конфликтовать со страницей
+      e.preventDefault()
       const deltaY = e.touches[0].clientY - touchStartY.current
-      if (el && el.scrollHeight > el.clientHeight) {
-        if (el.scrollTop <= 0 && deltaY > 0) {
-          e.preventDefault()
-          const v = Math.min(deltaY * PULL_RESISTANCE, 120)
-          setPullOffset(v)
-        } else if (el.scrollTop >= el.scrollHeight - el.clientHeight - 1 && deltaY < 0) {
-          e.preventDefault()
-          const v = Math.max(deltaY * PULL_RESISTANCE, -120)
-          setPullOffset(v)
-        }
-      } else {
-        e.preventDefault()
-        const v = Math.max(-120, Math.min(120, deltaY * PULL_RESISTANCE))
-        setPullOffset(v)
-      }
+      const v = Math.max(-120, Math.min(120, deltaY * PULL_RESISTANCE))
+      setPullOffset(v)
     },
     [zoom]
   )
@@ -181,6 +168,7 @@ export function FrameLightbox({
       aria-modal="true"
       aria-label="Просмотр фрейма"
       onClick={onClose}
+      style={{ overflow: "hidden" }}
     >
       {/* Миниатюры слева: скрыты при zoom in; при zoom out анимация появления 300ms; по умолчанию opacity 0.5, scale 0.7 */}
       <div
@@ -247,10 +235,14 @@ export function FrameLightbox({
         ) : null}
       </div>
 
-      {/* Область с картинкой: клик переключает zoom; при zoom original — pull-to-switch и растягивание */}
+      {/* Область с картинкой. Original: вся картинка в экране, без скролла; только pull сдвигает контент. Fit-width: скролл по картинке. */}
       <div
         ref={imageAreaRef}
-        className={`min-h-0 flex-1 overflow-auto p-4 pt-4 flex ${zoom === "fit-width" ? "items-start justify-center" : "items-center justify-center"}`}
+        className={`min-h-0 flex-1 p-4 pt-4 flex ${
+          zoom === "fit-width"
+            ? "overflow-auto items-start justify-center"
+            : "overflow-hidden items-center justify-center"
+        }`}
         onClick={(e) => {
           e.stopPropagation()
           toggleZoom()
@@ -259,12 +251,14 @@ export function FrameLightbox({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
-        style={{ touchAction: zoom === "original" ? "none" : "auto" }}
+        style={{ touchAction: zoom === "original" ? "none" : "pan-y" }}
       >
         <div
-          className="flex min-h-full min-w-full items-center justify-center transition-transform duration-75"
+          className="flex shrink-0 items-center justify-center transition-transform duration-75 ease-out"
           style={{
             transform: zoom === "original" ? `translateY(${pullOffset}px)` : undefined,
+            minHeight: zoom === "fit-width" ? "min-content" : undefined,
+            minWidth: zoom === "fit-width" ? "min-content" : undefined,
           }}
         >
           <img
