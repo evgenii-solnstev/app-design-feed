@@ -87,12 +87,6 @@ export function FrameLightbox({
     }
   }, [])
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (zoom !== "original") return
-    if (e.deltaY > 0) goNext()
-    else if (e.deltaY < 0) goPrev()
-  }
-
   if (!frame) return null
 
   const addedDate = frame.createdAt
@@ -113,7 +107,7 @@ export function FrameLightbox({
       {/* Миниатюры слева: скрыты при zoom in; при zoom out анимация появления 300ms; по умолчанию opacity 0.5, scale 0.7 */}
       <div
         ref={thumbsContainerRef}
-        className={`absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-5 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ${
+        className={`absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-4 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ${
           zoom === "fit-width" ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -124,11 +118,7 @@ export function FrameLightbox({
             type="button"
             data-thumb-index={index}
             onClick={() => onIndexChange(index)}
-            className={`relative shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 ${
-              index === currentIndex
-                ? "ring-2 ring-white ring-offset-2 ring-offset-black opacity-100 scale-100"
-                : "opacity-50 scale-[0.7]"
-            }`}
+            className="relative shrink-0 overflow-hidden rounded-md bg-muted opacity-50 transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 scale-[0.7]"
             style={{
               width: THUMB_WIDTH,
               height: THUMB_HEIGHT,
@@ -146,14 +136,14 @@ export function FrameLightbox({
         ))}
       </div>
 
-      {/* Кнопка закрытия: right 16px */}
+      {/* Кнопка закрытия: всегда видна поверх контента */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation()
           onClose()
         }}
-        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+        className="absolute right-4 top-4 z-30 flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
         aria-label="Закрыть"
       >
         <X className="size-6" />
@@ -177,10 +167,9 @@ export function FrameLightbox({
         ) : null}
       </div>
 
-      {/* Область с картинкой: клик переключает zoom; при fit-width картинка по ширине контейнера */}
+      {/* Область с картинкой: клик переключает zoom; при zoom — скролл контейнера для просмотра картинки */}
       <div
-        className="flex min-h-0 flex-1 items-center justify-center p-4 pt-4"
-        onWheel={handleWheel}
+        className={`min-h-0 flex-1 overflow-auto p-4 pt-4 flex ${zoom === "fit-width" ? "items-start justify-center" : "items-center justify-center"}`}
         onClick={(e) => {
           e.stopPropagation()
           toggleZoom()
@@ -191,16 +180,16 @@ export function FrameLightbox({
           alt={frame.comment ?? `Frame by ${frame.author.name}`}
           className={
             zoom === "fit-width"
-              ? "h-auto w-full max-w-full object-contain rounded-xl"
+              ? "h-auto w-full max-w-full object-contain object-left-top rounded-xl block"
               : "max-h-full max-w-full object-contain rounded-xl"
           }
           draggable={false}
         />
       </div>
 
-      {/* Zoom in/out внизу справа: bottom 32px, right 16px (как у кнопки закрытия), одинаковый размер кнопок */}
+      {/* Zoom in/out внизу справа: всегда видны поверх */}
       <div
-        className="absolute bottom-8 right-4 z-10 flex gap-1"
+        className="absolute bottom-8 right-4 z-30 flex gap-1"
         style={{ bottom: 32 }}
         onClick={(e) => e.stopPropagation()}
       >
