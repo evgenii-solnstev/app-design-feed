@@ -1,16 +1,82 @@
 "use client"
 
 import { useEffect, useRef, useCallback, useState } from "react"
+import Link from "next/link"
+import { ExternalLink } from "lucide-react"
 import { FrameCard } from "@/components/frame-card"
 import { FrameLightbox } from "@/components/frame-lightbox"
 import type { Frame, FramesResponse } from "@/lib/types"
+import type { ViewMode } from "@/app/page"
+
+/** Один слайд в режиме «Лента»: изображение + имя, дата, ссылка на файл (без fade). */
+function StripSlide({
+  frame,
+  onImageClick,
+  cardRef,
+}: {
+  frame: Frame
+  onImageClick: () => void
+  cardRef: (el: HTMLDivElement | null) => void
+}) {
+  const addedDate = frame.createdAt
+    ? new Date(frame.createdAt).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+      })
+    : null
+  const aspectRatio = frame.aspectRatio ?? "16/10"
+  return (
+    <div
+      ref={cardRef}
+      className="flex min-h-[80vh] flex-col gap-4 border-b border-border py-8 sm:min-h-[90vh] sm:flex-row sm:items-center sm:gap-8"
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        className="relative w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-2/3"
+        style={{ aspectRatio }}
+        onClick={onImageClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onImageClick()
+          }
+        }}
+      >
+        <img
+          src={frame.mediaUrl}
+          alt={frame.comment ?? `Frame by ${frame.author.name}`}
+          className="size-full object-cover"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      </div>
+      <div className="flex min-w-0 flex-col gap-2 sm:w-1/3">
+        <p className="font-medium text-foreground">{frame.author.name}</p>
+        {addedDate && (
+          <p className="text-muted-foreground text-sm">{addedDate}</p>
+        )}
+        {frame.figmaUrl ? (
+          <Link
+            href={frame.figmaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            <ExternalLink className="size-3.5" aria-hidden />
+            Open in Figma
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 /**
- * Лента фреймов с infinite scroll.
- * При первом рендере запрашивает первую порцию через GET /api/frames,
- * при достижении конца списка (IntersectionObserver на sentinel) подгружает следующую по nextCursor.
+ * Лента фреймов с infinite scroll. Режимы: grid (сетка) или strip (лента без fade).
  */
-export function FrameFeed() {
+export function FrameFeed({ viewMode }: { viewMode: ViewMode }) {
   const [items, setItems] = useState<Frame[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -120,6 +186,37 @@ export function FrameFeed() {
       <p className="text-muted-foreground text-center py-12">
         Пока нет фреймов. Добавьте первый через API.
       </p>
+    )
+  }
+
+  if (viewMode === "strip") {
+    return (
+      <>
+        <div className="flex flex-col gap-0">
+          {items.map((frame, index) => (
+            <StripSlide
+              key={frame.id}
+              frame={frame}
+              onImageClick={() => openLightbox(index)}
+              cardRef={(el) => {
+                cardRefs.current[index] = el
+              }}
+            />
+          ))}
+        </div>
+        {lightboxIndex !== null && (
+          <FrameLightbox
+            items={items}
+            currentIndex={lightboxIndex}
+            onClose={closeLightbox}
+            onIndexChange={setLightboxIndex}
+          />
+        )}
+        <div ref={sentinelRef} className="h-4 w-full" aria-hidden />
+        {loading && items.length > 0 && (
+          <p className="text-muted-foreground py-4 text-center text-sm">Загрузка…</p>
+        )}
+      </>
     )
   }
 

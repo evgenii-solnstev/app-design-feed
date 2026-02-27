@@ -45,7 +45,7 @@ export function FrameCard({
     : null
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="overflow-hidden shadow-none">
       {/* Область изображения: клик открывает полноэкранный просмотр */}
       <CardContent className="p-0">
         <div

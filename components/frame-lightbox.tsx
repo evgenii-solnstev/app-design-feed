@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useCallback } from "react"
-import { X } from "lucide-react"
+import { useEffect, useCallback, useState } from "react"
+import { X, ZoomIn, ZoomOut } from "lucide-react"
 import type { Frame } from "@/lib/types"
 
 type Props = {
@@ -11,9 +11,11 @@ type Props = {
   onIndexChange: (index: number) => void
 }
 
+type ZoomMode = "original" | "fit-width"
+
 /**
  * Полноэкранный просмотр одного фрейма.
- * Стрелки вверх/вниз и колёсико мыши — смена картинки, Escape или кнопка — закрытие.
+ * Zoom in = fit по ширине, Zoom out = исходный размер. Escape и кнопка — закрытие.
  */
 export function FrameLightbox({
   items,
@@ -24,6 +26,7 @@ export function FrameLightbox({
   const frame = items[currentIndex]
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex < items.length - 1
+  const [zoom, setZoom] = useState<ZoomMode>("original")
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange(currentIndex - 1)
@@ -32,6 +35,11 @@ export function FrameLightbox({
   const goNext = useCallback(() => {
     if (hasNext) onIndexChange(currentIndex + 1)
   }, [currentIndex, hasNext, onIndexChange])
+
+  // При смене картинки сбрасываем zoom к исходному
+  useEffect(() => {
+    setZoom("original")
+  }, [currentIndex])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -88,7 +96,33 @@ export function FrameLightbox({
         <X className="size-6" />
       </button>
 
-      {/* Область с картинкой: клик по картинке не закрывает; скролл вверх/вниз меняет картинку */}
+      {/* Zoom: in = fit по ширине, out = исходный размер */}
+      <div className="absolute right-4 top-16 z-10 flex gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setZoom("fit-width")
+          }}
+          className="rounded-full p-2 text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+          aria-label="Увеличить (по ширине)"
+        >
+          <ZoomIn className="size-5" />
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setZoom("original")
+          }}
+          className="rounded-full p-2 text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+          aria-label="Уменьшить (исходный размер)"
+        >
+          <ZoomOut className="size-5" />
+        </button>
+      </div>
+
+      {/* Область с картинкой */}
       <div
         className="flex min-h-0 flex-1 items-center justify-center p-4 pt-14"
         onWheel={handleWheel}
@@ -97,7 +131,11 @@ export function FrameLightbox({
         <img
           src={frame.mediaUrl}
           alt={frame.comment ?? `Frame by ${frame.author.name}`}
-          className="max-h-full max-w-full object-contain"
+          className={
+            zoom === "fit-width"
+              ? "h-auto w-full object-contain"
+              : "max-h-full max-w-full object-contain"
+          }
           draggable={false}
         />
       </div>
