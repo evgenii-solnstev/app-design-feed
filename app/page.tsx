@@ -29,11 +29,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Шапка: не фиксирована, скроллится с контентом. Заголовок слева, переключатель справа */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-4 px-4 py-6 sm:px-6 lg:px-8">
+      {/* Шапка: отступ сверху 64px, снизу 40px, без border. Переключатель по центру вертикали */}
+      <header className="bg-card pt-16 pb-10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="text-[40px] font-bold tracking-tight text-foreground">
               Design Feed
             </h1>
             <p className="mt-1 text-muted-foreground text-sm sm:text-base">
@@ -72,7 +72,7 @@ export default function Home() {
       </header>
 
       {/* Контент: один общий скролл с header */}
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-4 pb-6 pt-0 sm:px-6 lg:px-8">
         <FrameFeed viewMode={viewMode} />
       </main>
 

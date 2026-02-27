@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useCallback, useState } from "react"
+import { useEffect, useCallback, useState, useRef } from "react"
+import Link from "next/link"
 import { X, ZoomIn, ZoomOut } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 import type { Frame } from "@/lib/types"
 
 type Props = {
@@ -13,9 +15,12 @@ type Props = {
 
 type ZoomMode = "original" | "fit-width"
 
+const THUMB_WIDTH = 150
+const THUMB_HEIGHT = 112
+
 /**
- * Полноэкранный просмотр одного фрейма.
- * Zoom in = fit по ширине, Zoom out = исходный размер. Escape и кнопка — закрытие.
+ * Полноэкранный просмотр: данные вверху по центру, zoom по клику на картинку,
+ * кнопки zoom внизу справа, миниатюры слева.
  */
 export function FrameLightbox({
   items,
@@ -27,6 +32,7 @@ export function FrameLightbox({
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex < items.length - 1
   const [zoom, setZoom] = useState<ZoomMode>("original")
+  const thumbsContainerRef = useRef<HTMLDivElement>(null)
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange(currentIndex - 1)
@@ -36,9 +42,22 @@ export function FrameLightbox({
     if (hasNext) onIndexChange(currentIndex + 1)
   }, [currentIndex, hasNext, onIndexChange])
 
-  // При смене картинки сбрасываем zoom к исходному
+  const toggleZoom = useCallback(() => {
+    setZoom((z) => (z === "original" ? "fit-width" : "original"))
+  }, [])
+
   useEffect(() => {
     setZoom("original")
+  }, [currentIndex])
+
+  // Прокрутить контейнер миниатюр так, чтобы текущая была видна
+  useEffect(() => {
+    const container = thumbsContainerRef.current
+    if (!container) return
+    const el = container.querySelector(`[data-thumb-index="${currentIndex}"]`)
+    if (el) {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    }
   }, [currentIndex])
 
   useEffect(() => {
@@ -75,6 +94,13 @@ export function FrameLightbox({
 
   if (!frame) return null
 
+  const addedDate = frame.createdAt
+    ? new Date(frame.createdAt).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+      })
+    : null
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-black/95"
@@ -83,50 +109,72 @@ export function FrameLightbox({
       aria-label="Просмотр фрейма"
       onClick={onClose}
     >
-      {/* Кнопка закрытия */}
+      {/* Миниатюры слева: 32px от краёв, 150×112, radius 6px, между ними 20px */}
+      <div
+        ref={thumbsContainerRef}
+        className="absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-5 overflow-y-auto overflow-x-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {items.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            data-thumb-index={index}
+            onClick={() => onIndexChange(index)}
+            className={`relative shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 ${
+              index === currentIndex ? "ring-2 ring-white ring-offset-2 ring-offset-black" : ""
+            }`}
+            style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: 6 }}
+          >
+            <img
+              src={item.mediaUrl}
+              alt=""
+              className="size-full object-cover"
+              draggable={false}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Кнопка закрытия: right 16px */}
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation()
           onClose()
         }}
-        className="absolute right-4 top-4 z-10 rounded-full p-2 text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
         aria-label="Закрыть"
       >
         <X className="size-6" />
       </button>
 
-      {/* Zoom: in = fit по ширине, out = исходный размер */}
-      <div className="absolute right-4 top-16 z-10 flex gap-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setZoom("fit-width")
-          }}
-          className="rounded-full p-2 text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-          aria-label="Увеличить (по ширине)"
-        >
-          <ZoomIn className="size-5" />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setZoom("original")
-          }}
-          className="rounded-full p-2 text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-          aria-label="Уменьшить (исходный размер)"
-        >
-          <ZoomOut className="size-5" />
-        </button>
+      {/* Вверху по центру: Автор, дата, ссылка на Figma */}
+      <div className="z-10 flex shrink-0 flex-col items-center gap-1 pt-4 text-center text-white/90">
+        <p className="font-medium">{frame.author.name}</p>
+        {addedDate && <p className="text-sm text-white/70">{addedDate}</p>}
+        {frame.figmaUrl ? (
+          <Link
+            href={frame.figmaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-white/90 underline hover:text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="size-3.5" aria-hidden />
+            Open in Figma
+          </Link>
+        ) : null}
       </div>
 
-      {/* Область с картинкой */}
+      {/* Область с картинкой: клик переключает zoom */}
       <div
-        className="flex min-h-0 flex-1 items-center justify-center p-4 pt-14"
+        className="flex min-h-0 flex-1 items-center justify-center p-4 pt-4"
         onWheel={handleWheel}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleZoom()
+        }}
       >
         <img
           src={frame.mediaUrl}
@@ -140,12 +188,28 @@ export function FrameLightbox({
         />
       </div>
 
-      {/* Подпись: автор и счётчик */}
-      <div className="shrink-0 border-t border-white/10 px-4 py-2 text-center text-sm text-white/80">
-        <span>{frame.author.name}</span>
-        <span className="ml-2 text-white/50">
-          {currentIndex + 1} / {items.length}
-        </span>
+      {/* Zoom in/out внизу справа: bottom 32px, right 16px (как у кнопки закрытия), одинаковый размер кнопок */}
+      <div
+        className="absolute bottom-8 right-4 z-10 flex gap-1"
+        style={{ bottom: 32 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => setZoom("fit-width")}
+          className="flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+          aria-label="Увеличить (по ширине)"
+        >
+          <ZoomIn className="size-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoom("original")}
+          className="flex size-10 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+          aria-label="Уменьшить (исходный размер)"
+        >
+          <ZoomOut className="size-5" />
+        </button>
       </div>
     </div>
   )
