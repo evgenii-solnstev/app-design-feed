@@ -64,8 +64,8 @@ export function FrameCard({
         />
       </div>
 
-      {/* Имя и дата — отступ сверху 20px; далее как раньше */}
-      <div className="mt-5 flex flex-col items-start gap-3">
+      {/* Имя и дата — отступ 16px от контейнера с картинкой */}
+      <div className="mt-4 flex flex-col items-start gap-3">
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="size-8 shrink-0">

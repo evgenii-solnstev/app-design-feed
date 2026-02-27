@@ -28,12 +28,12 @@ function StripSlide({
   return (
     <div
       ref={cardRef}
-      className="flex min-h-[80vh] flex-col gap-3 py-6 sm:min-h-[90vh] sm:flex-row sm:items-center sm:gap-6"
+      className="flex min-h-[80vh] flex-col gap-2 py-5 sm:min-h-[90vh] sm:flex-row sm:items-center sm:gap-5"
     >
       <div
         role="button"
         tabIndex={0}
-        className="relative w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-2/3"
+        className="relative w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:flex-[5]"
         style={{ aspectRatio }}
         onClick={onImageClick}
         onKeyDown={(e) => {
@@ -52,7 +52,7 @@ function StripSlide({
           draggable={false}
         />
       </div>
-      <div className="flex min-w-0 flex-col gap-2 sm:w-1/3">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="font-medium text-foreground">{frame.author.name}</p>
         {addedDate && (
           <p className="text-muted-foreground text-sm">{addedDate}</p>
@@ -223,7 +223,7 @@ export function FrameFeed({ viewMode }: { viewMode: ViewMode }) {
   return (
     <>
       {/* Сетка по 2 карточки в ряд */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-10 sm:grid-cols-2">
         {items.map((frame, index) => (
           <div
             key={frame.id}
