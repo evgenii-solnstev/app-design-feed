@@ -88,6 +88,7 @@ export function FrameLightbox({
   }, [])
 
   const handleWheel = (e: React.WheelEvent) => {
+    if (zoom !== "original") return
     if (e.deltaY > 0) goNext()
     else if (e.deltaY < 0) goPrev()
   }
@@ -109,10 +110,12 @@ export function FrameLightbox({
       aria-label="Просмотр фрейма"
       onClick={onClose}
     >
-      {/* Миниатюры слева: 32px от краёв, 150×112, radius 6px, между ними 20px */}
+      {/* Миниатюры слева: скрыты при zoom in; при zoom out анимация появления 300ms; по умолчанию opacity 0.5, scale 0.7 */}
       <div
         ref={thumbsContainerRef}
-        className="absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-5 overflow-y-auto overflow-x-hidden"
+        className={`absolute bottom-8 left-8 top-8 z-10 flex w-[150px] flex-col gap-5 overflow-y-auto overflow-x-hidden transition-opacity duration-300 ${
+          zoom === "fit-width" ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {items.map((item, index) => (
@@ -122,9 +125,16 @@ export function FrameLightbox({
             data-thumb-index={index}
             onClick={() => onIndexChange(index)}
             className={`relative shrink-0 overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-white/50 ${
-              index === currentIndex ? "ring-2 ring-white ring-offset-2 ring-offset-black" : ""
+              index === currentIndex
+                ? "ring-2 ring-white ring-offset-2 ring-offset-black opacity-100 scale-100"
+                : "opacity-50 scale-[0.7]"
             }`}
-            style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, borderRadius: 6 }}
+            style={{
+              width: THUMB_WIDTH,
+              height: THUMB_HEIGHT,
+              borderRadius: 6,
+              transformOrigin: "top left",
+            }}
           >
             <img
               src={item.mediaUrl}
@@ -167,7 +177,7 @@ export function FrameLightbox({
         ) : null}
       </div>
 
-      {/* Область с картинкой: клик переключает zoom */}
+      {/* Область с картинкой: клик переключает zoom; при fit-width картинка по ширине контейнера */}
       <div
         className="flex min-h-0 flex-1 items-center justify-center p-4 pt-4"
         onWheel={handleWheel}
@@ -181,8 +191,8 @@ export function FrameLightbox({
           alt={frame.comment ?? `Frame by ${frame.author.name}`}
           className={
             zoom === "fit-width"
-              ? "h-auto w-full object-contain"
-              : "max-h-full max-w-full object-contain"
+              ? "h-auto w-full max-w-full object-contain rounded-xl"
+              : "max-h-full max-w-full object-contain rounded-xl"
           }
           draggable={false}
         />
