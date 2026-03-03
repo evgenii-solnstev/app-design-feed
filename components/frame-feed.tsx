@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react"
 import Link from "next/link"
-import { ExternalLink } from "lucide-react"
+import { FigmaLogoIcon } from "@/components/icons/figma-logo"
 import { FrameCard } from "@/components/frame-card"
 import { FrameLightbox } from "@/components/frame-lightbox"
 import type { Frame, FramesResponse } from "@/lib/types"
@@ -64,8 +64,8 @@ function StripSlide({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
           >
-            <ExternalLink className="size-3.5" aria-hidden />
-            Open in Figma
+            <FigmaLogoIcon size={16} className="shrink-0 text-foreground" />
+            Figma
           </Link>
         ) : null}
       </div>

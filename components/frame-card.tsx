@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink } from "lucide-react"
+import { FigmaLogoIcon } from "@/components/icons/figma-logo"
 import type { Frame } from "@/lib/types"
 
 /**
@@ -92,8 +92,8 @@ export function FrameCard({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2"
             >
-              <ExternalLink className="size-3.5" aria-hidden />
-              Open in Figma
+              <FigmaLogoIcon size={16} className="shrink-0 text-foreground" />
+              Figma
             </Link>
           </Button>
         ) : null}
