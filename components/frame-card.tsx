@@ -84,8 +84,8 @@ export function FrameCard({
           )}
         </div>
 
-        {frame.figmaUrl ? (
-          <Button variant="outline" size="sm" asChild className="w-full">
+        <Button variant="outline" size="sm" asChild className="w-full">
+          {frame.figmaUrl ? (
             <Link
               href={frame.figmaUrl}
               target="_blank"
@@ -95,8 +95,13 @@ export function FrameCard({
               <FigmaLogoIcon size={16} className="shrink-0 text-foreground" />
               Figma
             </Link>
-          </Button>
-        ) : null}
+          ) : (
+            <span className="inline-flex cursor-default items-center gap-2 opacity-60">
+              <FigmaLogoIcon size={16} className="shrink-0 text-foreground" />
+              Figma
+            </span>
+          )}
+        </Button>
 
         {frame.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1">

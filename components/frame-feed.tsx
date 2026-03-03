@@ -67,7 +67,12 @@ function StripSlide({
             <FigmaLogoIcon size={16} className="shrink-0 text-foreground" />
             Figma
           </Link>
-        ) : null}
+        ) : (
+          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <FigmaLogoIcon size={16} className="shrink-0" />
+            Figma
+          </span>
+        )}
       </div>
     </div>
   )
